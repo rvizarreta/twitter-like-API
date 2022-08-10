@@ -1,4 +1,5 @@
 # Python
+import json
 from lib2to3.pytree import Base
 from uuid import UUID
 from datetime import date, datetime
@@ -13,6 +14,7 @@ from pydantic import Field
 # FastAPI
 from fastapi import FastAPI
 from fastapi import status
+from fastapi import Body
 
 app = FastAPI()
 
@@ -131,10 +133,10 @@ def update_a_tweet():
     status_code = status.HTTP_201_CREATED,
     summary = 'Register a User',
     tags = ['Users'])
-def signup():
+def signup(user : UserRegister = Body(...)):
     """
     Signup
-    
+
     This path operation registers a user in the app.
 
     Parameters:
@@ -146,8 +148,17 @@ def signup():
         - email : Emailstr
         - first_name : str
         - last_name : str
+        - birth_date : date
     """
-    pass
+    with open("users.json", "r+", encoding = 'utf-8') as f:
+        results = json.loads(f.read())
+        user_dict = user.dict()
+        user_dict["user_id"] = str(user_dict["user_id"])
+        user_dict["birth_date"] = str(user_dict["birth_date"])
+        results.append(user_dict)
+        f.seek(0) # Write from zero
+        f.write(json.dumps(results))
+        return user
 
 ### Login a user
 @app.post(
