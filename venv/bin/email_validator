@@ -1,0 +1,10 @@
+#!/bin/sh
+'''exec' "/Volumes/GoogleDrive-102024684428191379621/My Drive/🎯 Side Projects/👾 qiW3 Journal Club/📗Platzi & Training/2. FastAPI Basics/twitter-api-fastapi/venv/bin/python3" "$0" "$@"
+' '''
+# -*- coding: utf-8 -*-
+import re
+import sys
+from email_validator import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
