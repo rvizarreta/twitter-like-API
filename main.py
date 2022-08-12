@@ -1,5 +1,6 @@
 # Python
 import json
+from unittest import result
 from uuid import UUID
 from datetime import date, datetime
 from typing import Optional, List
@@ -291,12 +292,12 @@ def show_a_user(
     """
     with open("users.json", 'r', encoding='utf-8') as f:
         results = json.loads(f.read())
-        user_out = next(item for item in results if item["user_id"] == user_id)
-        if user_id != user_out["user_id"]:
+        if user_id not in [dic['user_id'] for dic in results]:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="This user doesn't exist!"
             )
+        user_out = next(item for item in results if item["user_id"] == user_id)
         return user_out
 
 ### Delete a user
@@ -319,29 +320,54 @@ def delete_a_user(
     Returns a message:
         - 'User deleted successfully' 
     """
-    with open("users.json", 'r', encoding='utf-8') as f:
+    with open("users.json", 'r+', encoding='utf-8') as f:
         results = json.loads(f.read())
-        deleted_user = next(item for item in results if item["user_id"] == user_id)
-        if user_id != deleted_user["user_id"]:
+        if user_id not in [dic['user_id'] for dic in results]:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="This user doesn't exist!"
             )
         results_new = []
         list(results_new.append(item) for item in results if item["user_id"] != user_id)
-        f.seek(0) # Write from zero
-        f.write(json.dumps(results_new))
+        f.truncate(0) # Clean file content
+        f.seek(0) # Go to the beggining of the file
+        f.write(json.dumps(results_new)) # Write new data in json type
         return {'Delete user' : 'User deleted successfully'}
 
 
 ### Update a user
 @app.put(
     path = '/users/{user_id}/update',
-    response_model = User,
     status_code = status.HTTP_200_OK,
     summary = 'Update a User',
     tags = ['Users'])
-def update_a_user():
-    pass
+def update_a_user(user : UserRegister = Body(...)):
+    """
+    This path operation updates a user in the app.
+
+    Parameters:
+        - Request Body parameter.
+            - user : UserRegister
+
+    Returns a message:
+        - 'User updated successfully' 
+    """
+    with open("users.json", 'r+', encoding='utf-8') as f:
+        results = json.loads(f.read())
+        user_dict = user.dict()
+        user_dict['user_id'] = str(user_dict['user_id'])
+        user_dict["birth_date"] = str(user_dict["birth_date"])
+        if user_dict['user_id'] not in [dic['user_id'] for dic in results]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="This user doesn't exist!"
+            )
+        results_new = []
+        list(results_new.append(item) for item in results if item["user_id"] != user_dict['user_id'])
+        results_new.append(user_dict)
+        f.truncate(0) # Clean file content
+        f.seek(0) # Go to the beggining of the file
+        f.write(json.dumps(results_new)) # Write new data in json type
+        return {'Update user' : 'User updated successfully'}
 
 ############################################################
