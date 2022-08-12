@@ -1,6 +1,5 @@
 # Python
 import json
-from lib2to3.pytree import Base
 from uuid import UUID
 from datetime import date, datetime
 from typing import Optional, List
@@ -14,7 +13,8 @@ from pydantic import Field
 # FastAPI
 from fastapi import FastAPI
 from fastapi import status
-from fastapi import Body
+from fastapi import Body, Path, Form
+from fastapi import HTTPException
 
 app = FastAPI()
 
@@ -80,7 +80,22 @@ class Tweet(BaseModel):
     summary = 'Show all tweets',
     tags = ['Tweets'])
 def home():
-    return {"Twitter API" : "Working!"}
+    """
+    This path operation shows all tweets in the app.
+
+    Parameters:
+        - 
+
+    Returns a json with the basic tweet information:
+        - tweet_id : UUID
+        - content : str
+        - created_at : datetime
+        - updated_at : Optional[datetime]
+        - by : User
+    """
+    with open("tweets.json", 'r', encoding='utf-8') as f:
+        results = json.loads(f.read())
+        return results
 
 ### Post a tweet
 @app.post(
@@ -126,8 +141,35 @@ def post(tweet: Tweet = Body(...)):
     status_code = status.HTTP_200_OK,
     summary = 'Show a tweet',
     tags = ['Tweets'])
-def show_a_tweet():
-    pass
+def show_a_tweet(
+    tweet_id : str = Path(
+        ...,
+        title = "Tweet ID",
+        description = "This is the tweet ID. It's required.") ):
+    """
+    Show a tweet
+
+    This path operation shows a tweet in the app.
+
+    Parameters:
+        - tweet_id : UUID
+
+    Returns a json with the basic tweet information:
+        - tweet_id : UUID
+        - content : str
+        - created_at : datetime
+        - updated_at : Optional[datetime]
+        - by : User
+    """
+    with open("tweets.json", 'r', encoding='utf-8') as f:
+        results = json.loads(f.read())
+        tweet_out = next(item for item in results if item["tweet_id"] == tweet_id)
+        if tweet_id != tweet_out["tweet_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="This tweet doesn't exist!"
+            )
+        return tweet_out
 
 ### Delete a tweet
 @app.delete(
@@ -229,18 +271,68 @@ def show_all_users():
     status_code = status.HTTP_200_OK,
     summary = 'Show a User',
     tags = ['Users'])
-def show_a_user():
-    pass
+def show_a_user(
+    user_id : str = Path(
+        ...,
+        title = "User ID",
+        description = "This is the user ID. It's required.") ):
+    """
+    This path operation shows a user in the app.
+
+    Parameters:
+        - user_id : UUID
+
+    Returns a json list with the matched user in the app, with the following keys:
+        - user_id : UUID
+        - email : Emailstr
+        - first_name : str
+        - last_name : str
+        - birth_date : datetime
+    """
+    with open("users.json", 'r', encoding='utf-8') as f:
+        results = json.loads(f.read())
+        user_out = next(item for item in results if item["user_id"] == user_id)
+        if user_id != user_out["user_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="This user doesn't exist!"
+            )
+        return user_out
 
 ### Delete a user
 @app.delete(
     path = '/users/{user_id}/delete',
-    response_model = User,
     status_code = status.HTTP_200_OK,
     summary = 'Delete a User',
     tags = ['Users'])
-def delete_a_user():
-    pass
+def delete_a_user(
+    user_id : str = Path(
+        ...,
+        title = "User ID",
+        description = "This is the user ID. It's required.") ):
+    """
+    This path operation deletes a user in the app.
+
+    Parameters:
+        - user_id : UUID
+
+    Returns a message:
+        - 'User deleted successfully' 
+    """
+    with open("users.json", 'r', encoding='utf-8') as f:
+        results = json.loads(f.read())
+        deleted_user = next(item for item in results if item["user_id"] == user_id)
+        if user_id != deleted_user["user_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="This user doesn't exist!"
+            )
+        results_new = []
+        list(results_new.append(item) for item in results if item["user_id"] != user_id)
+        f.seek(0) # Write from zero
+        f.write(json.dumps(results_new))
+        return {'Delete user' : 'User deleted successfully'}
+
 
 ### Update a user
 @app.put(
